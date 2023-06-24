@@ -15,10 +15,6 @@ prompt() {
 
 # Configuration
 lsblk
-prompt "Disk [/dev/sda]: "
-read DISKPATH
-DISKPATH=${DISKPATH:-/dev/sda}
-[[ ! -b "$DISKPATH" ]] && err "Disk does not exist. Exiting."
 
 prompt "Filesystem [ext4]: "
 read FILESYSTEM
@@ -41,11 +37,6 @@ SSH=${SSH:-no}
 prompt "Password [root]: "
 read -s PASSWORD
 PASSWORD=${PASSWORD:-root}
-
-# Setup partition variables
-BOOT_BIOS="${DISKPATH}1"
-BOOT_EFI="${DISKPATH}2"
-ROOT="${DISKPATH}3"
 
 echo ""
 echo ""
@@ -71,33 +62,6 @@ umount "$ROOT" 2> /dev/null || true
 
 # Timezone
 timedatectl set-ntp true
-
-# Partitioning
-(
-	echo g		# Erase as GPT
-
-	echo n		# BIOS partition
-	echo
-	echo
-	echo +1M
-	echo t
-	echo 4
-
-	echo n		# EFI partition
-	echo
-	echo
-	echo +512M
-	echo t
-	echo
-	echo 1
-
-	echo n		# Linux root
-	echo
-	echo
-	echo
-	sleep 3		# Delay to avoid race condition
-	echo w		# Write
-) | fdisk -w always -W always "$DISKPATH"
 
 # Formatting partitions
 mkfs.fat -F 32 "$BOOT_EFI"
@@ -135,9 +99,6 @@ genfstab -U /mnt >> /mnt/etc/fstab
 
 	# Install GRUBv2 as a removable drive (universal across hw)
 	echo "pacman -Sy --noconfirm grub efibootmgr"
-
-	# BIOS steps
-	echo "grub-install --target=i386-pc \"$DISKPATH\" --recheck"
 
 	# EFI steps
 	echo "mkdir /boot/efi"
