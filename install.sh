@@ -32,14 +32,14 @@ read HOME_REQUIRED
 
 if [ "$HOME_REQUIRED" = "y" ];then
 
-prompt "Format Home Partition [y/N]: "
-read FORMAT_HOME
-[[ "$FORMAT_HOME" != "y" ]] && FORMAT_HOME=NO
-[[ "$FORMAT_HOME" = "y" ]] && FORMAT_HOME=Yes
+  prompt "Format Home Partition [y/N]: "
+  read FORMAT_HOME
+  [[ "$FORMAT_HOME" != "y" ]] && FORMAT_HOME=NO
+  [[ "$FORMAT_HOME" = "y" ]] && FORMAT_HOME=Yes
 
-prompt "Home [/dev/sda#]: "
-read HOME
-[[ ! -b "$HOME" ]] && err "Partition does not exist. Exiting." ;fi
+  prompt "Home [/dev/sda#]: "
+  read HOME
+  [[ ! -b "$HOME" ]] && err "Partition does not exist. Exiting." ;fi
 
 prompt "Filesystem [ext4]: "
 read FILESYSTEM
@@ -92,17 +92,17 @@ timedatectl set-ntp true
 mkfs.fat -F 32 "$BOOT_EFI"
 yes | mkfs.$FILESYSTEM "$ROOT"
 if [ "$FORMAT_HOME" = "Yes" ];then
-mkfs.$FILESYSTEM "$HOME" ;fi
+  mkfs.$FILESYSTEM "$HOME" ;fi
 
 # Mount our new partition
 mount "$ROOT" /mnt
 sleep 3
 if [ "$HOME_REQUIRED" = "y" ];then
-mkdir /mnt/home
-mount $HOME /mnt/home ;fi
+  mkdir /mnt/home
+  mount $HOME /mnt/home ;fi
 
 # Initialize base system, kernel, and firmware
-pacstrap /mnt base linux linux-firmware
+pacstrap /mnt base linux-lts linux-firmware
 
 # Setup fstab
 genfstab -U /mnt >> /mnt/etc/fstab
@@ -129,7 +129,8 @@ genfstab -U /mnt >> /mnt/etc/fstab
 	echo "pacman -Sy --noconfirm amd-ucode intel-ucode"
 
 	# Install GRUBv2 as a removable drive (universal across hw)
-	echo "pacman -Sy --noconfirm grub efibootmgr"
+	echo "pacman -Sy --noconfirm grub efibootmgr os-prober"
+	echo "sed -i \"s/#GRUB_DISABLE_OS_PROBER=false/GRUB_DISABLE_OS_PROBER=false/\" /etc/default/grub "
 
 	# EFI steps
 	echo "mkdir /boot/efi"
@@ -144,7 +145,8 @@ genfstab -U /mnt >> /mnt/etc/fstab
 	echo "systemctl enable NetworkManager"
 	
 	# Launch bluetoothd on boot
-	#echo "systemctl enable bluetooth"
+	echo "pacman -Sy --noconfirm bluez"
+	echo "systemctl enable bluetooth"
 
 	# Fix initramfs for portable media
 	echo "sed -i \"s/autodetect modconf block filesystems keyboard/block keyboard autodetect modconf filesystems/\" /etc/mkinitcpio.conf"
@@ -159,4 +161,4 @@ genfstab -U /mnt >> /mnt/etc/fstab
 	fi
 ) | arch-chroot /mnt
 
-echo "Install completed on $DISKPATH."
+echo "Install completed on $ROOT."
