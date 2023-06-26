@@ -14,7 +14,32 @@ prompt() {
 }
 
 # Configuration
-lsblk
+clear
+lsblk -o NAME,TYPE,SIZE,FSTYPE,MOUNTPOINTS
+
+prompt "Boot [/dev/sda#]: "
+read BOOT_EFI
+[[ ! -b "$BOOT_EFI" ]] && err "Partition does not exist. Exiting."
+
+prompt "Root [/dev/sda#]: "
+read ROOT
+[[ ! -b "$ROOT" ]] && err "Partition does not exist. Exiting."
+
+##Home Partition setup
+prompt "Seprate Home Partition [y/N]: "
+read HOME_REQUIRED
+[[ "$HOME_REQUIRED" != "y" ]] &&  HOME_REQUIRED=NO && HOME=NO FORMAT_HOME=N/A
+
+if [ "$HOME_REQUIRED" = "y" ];then
+
+prompt "Format Home Partition [y/N]: "
+read FORMAT_HOME
+[[ "$FORMAT_HOME" != "y" ]] && FORMAT_HOME=NO
+[[ "$FORMAT_HOME" = "y" ]] && FORMAT_HOME=Yes
+
+prompt "Home [/dev/sda#]: "
+read HOME
+[[ ! -b "$HOME" ]] && err "Partition does not exist. Exiting." ;fi
 
 prompt "Filesystem [ext4]: "
 read FILESYSTEM
@@ -41,11 +66,11 @@ PASSWORD=${PASSWORD:-root}
 echo ""
 echo ""
 printf "%-16s\t%-16s\n" "CONFIGURATION" "VALUE"
-printf "%-16s\t%-16s\n" "Disk:" "$DISKPATH"
-printf "%-16s\t%-16s\n" "Root Filesystem:" "$FILESYSTEM"
-printf "%-16s\t%-16s\n" "Boot Partition [BIOS]:" "$BOOT_BIOS"
+printf "%-16s\t%-16s\n" "Root & Home Filesystem:" "$FILESYSTEM"
 printf "%-16s\t%-16s\n" "Boot Partition [EFI]:" "$BOOT_EFI"
 printf "%-16s\t%-16s\n" "Root Partition:" "$ROOT"
+printf "%-16s\t%-16s\n" "Home Partition:" "$HOME"
+printf "%-16s\t%-16s\n" "Format Home Partition:" "$FORMAT_HOME"
 printf "%-16s\t%-16s\n" "Timezone:" "$TIMEZONE"
 printf "%-16s\t%-16s\n" "Hostname:" "$HOSTNAME"
 printf "%-16s\t%-16s\n" "Password:" "`echo \"$PASSWORD\" | sed 's/./*/g'`"
@@ -56,9 +81,9 @@ read PROCEED
 [[ "$PROCEED" != "y" ]] && err "User chose not to proceed. Exiting."
 
 # Unmount for safety
-umount "$BOOT_BIOS" 2> /dev/null || true
 umount "$BOOT_EFI" 2> /dev/null || true
 umount "$ROOT" 2> /dev/null || true
+check "$HOME_REQUIRED" "umount "$HOME" 2> /dev/null || true "
 
 # Timezone
 timedatectl set-ntp true
@@ -66,9 +91,15 @@ timedatectl set-ntp true
 # Formatting partitions
 mkfs.fat -F 32 "$BOOT_EFI"
 yes | mkfs.$FILESYSTEM "$ROOT"
+if [ "$FORMAT_HOME" = "Yes" ];then
+mkfs.$FILESYSTEM "$HOME" ;fi
 
 # Mount our new partition
 mount "$ROOT" /mnt
+sleep 3
+if [ "$HOME_REQUIRED" = "y" ];then
+mkdir /mnt/home
+mount $HOME /mnt/home ;fi
 
 # Initialize base system, kernel, and firmware
 pacstrap /mnt base linux linux-firmware
@@ -113,7 +144,7 @@ genfstab -U /mnt >> /mnt/etc/fstab
 	echo "systemctl enable NetworkManager"
 	
 	# Launch bluetoothd on boot
-	echo "systemctl enable bluetooth"
+	#echo "systemctl enable bluetooth"
 
 	# Fix initramfs for portable media
 	echo "sed -i \"s/autodetect modconf block filesystems keyboard/block keyboard autodetect modconf filesystems/\" /etc/mkinitcpio.conf"
@@ -128,4 +159,4 @@ genfstab -U /mnt >> /mnt/etc/fstab
 	fi
 ) | arch-chroot /mnt
 
-echo "Install completed on $DISKPATH." 
+echo "Install completed on $DISKPATH."
