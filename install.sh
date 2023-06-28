@@ -1,20 +1,25 @@
 #!/usr/bin/env bash
 # Written by Draco (tytydraco @ GitHub)
+# Modified by Tokito
 
 # Exit on any error
 set -e
+clear
 
 err() {
-	echo -e " \e[91m*\e[39m $@"
+	echo -e " \e[91m*\e[39m $*"
 	exit 1
 }
 
 prompt() {
-	echo -ne " \e[92m*\e[39m $@"
+	echo -ne " \e[92m*\e[39m $*"
 }
 
+#Chech internet Connection
+if ! ping -c3 archlinux.org ;then
+err "Connect to Internet & try again!" ;fi
+
 # Configuration
-clear
 lsblk -o NAME,TYPE,SIZE,FSTYPE,MOUNTPOINTS
 
 prompt "Boot [/dev/sda#]: "
@@ -46,22 +51,23 @@ read FILESYSTEM
 FILESYSTEM=${FILESYSTEM:-ext4}
 ! command -v mkfs.$FILESYSTEM &> /dev/null && err "Filesystem type does not exist. Exiting."
 
-prompt "Timezone [America/Los_Angeles]: "
+prompt "Timezone [Asia/Kolkata]: "
 read TIMEZONE
-TIMEZONE=${TIMEZONE:-America/Los_Angeles}
+TIMEZONE=${TIMEZONE:-Asia/Kolkata}
 [[ ! -f "/usr/share/zoneinfo/$TIMEZONE" ]] && err "/usr/share/zoneinfo/$TIMEZONE does not exist. Exiting."
 
 prompt "Hostname [localhost]: "
 read HOSTNAME
 HOSTNAME=${HOSTNAME:-localhost}
 
+prompt "Password [root]: "
+read -s PASSWORD
+PASSWORD=${PASSWORD:-root} && echo
+
 prompt "SSH [no]: "
 read SSH
 SSH=${SSH:-no}
 
-prompt "Password [root]: "
-read -s PASSWORD
-PASSWORD=${PASSWORD:-root}
 
 echo ""
 echo ""
@@ -83,7 +89,8 @@ read PROCEED
 # Unmount for safety
 umount "$BOOT_EFI" 2> /dev/null || true
 umount "$ROOT" 2> /dev/null || true
-check "$HOME_REQUIRED" "umount "$HOME" 2> /dev/null || true "
+if [ "$HOME_REQUIRED" = "Yes" ];then
+umount "$HOME" 2> /dev/null || true ;fi
 
 # Timezone
 timedatectl set-ntp true
@@ -100,6 +107,10 @@ sleep 3
 if [ "$HOME_REQUIRED" = "y" ];then
   mkdir /mnt/home
   mount $HOME /mnt/home ;fi
+
+# Enable Parallel downloading
+sed -i "s/#ParallelDownloads = 5/ParallelDownloads = 4/" /etc/pacman.conf
+sed -i "s/#Color/Color/" /etc/pacman.conf
 
 # Initialize base system, kernel, and firmware
 pacstrap /mnt base linux-lts linux-firmware
@@ -130,7 +141,7 @@ genfstab -U /mnt >> /mnt/etc/fstab
 
 	# Install GRUBv2 as a removable drive (universal across hw)
 	echo "pacman -Sy --noconfirm grub efibootmgr os-prober"
-	echo "sed -i \"s/#GRUB_DISABLE_OS_PROBER=false/GRUB_DISABLE_OS_PROBER=false/\" /etc/default/grub "
+	echo "sed -i \"s/#GRUB_DISABLE_OS_PROBER=false/GRUB_DISABLE_OS_PROBER=false/\" /etc/default/grub"
 
 	# EFI steps
 	echo "mkdir /boot/efi"
