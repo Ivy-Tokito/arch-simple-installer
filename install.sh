@@ -146,7 +146,7 @@ genfstab -U /mnt >> /mnt/etc/fstab
 	# EFI steps
 	echo "mkdir /boot/efi"
 	echo "mount \"$BOOT_EFI\" /boot/efi"
-	echo "grub-install --target=x86_64-efi --efi-directory=/boot/efi --removable --recheck"
+	echo "grub-install --target=x86_64-efi --efi-directory=/boot/efi --recheck"
 	
 	# Install GRUB config
 	echo "grub-mkconfig -o /boot/grub/grub.cfg"
@@ -159,10 +159,6 @@ genfstab -U /mnt >> /mnt/etc/fstab
 	echo "pacman -Sy --noconfirm bluez"
 	echo "systemctl enable bluetooth"
 
-	# Fix initramfs for portable media
-	echo "sed -i \"s/autodetect modconf block filesystems keyboard/block keyboard autodetect modconf filesystems/\" /etc/mkinitcpio.conf"
-	echo "mkinitcpio -P"
-
 	# Enable SSH server out of the box
 	if [[ "$SSH" == "yes" ]]
 	then
@@ -172,4 +168,4 @@ genfstab -U /mnt >> /mnt/etc/fstab
 	fi
 ) | arch-chroot /mnt
 
-echo "Install completed on $ROOT."
+echo "Install completed."
