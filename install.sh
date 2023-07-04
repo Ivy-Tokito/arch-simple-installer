@@ -16,8 +16,14 @@ prompt() {
 }
 
 #Chech internet Connection
-if ! ping -c3 archlinux.org ;then
+if ! ping -c1 archlinux.org ;then
 err "Connect to Internet & try again!" ;fi
+
+echo "
+# It's Recommended to Update Mirrors using :
+reflector --save /etc/pacman.d/mirrorlist --country $COUNTRY --latest 10 --sort rate
+
+"
 
 # Configuration
 lsblk -o NAME,TYPE,SIZE,FSTYPE,MOUNTPOINTS
@@ -56,9 +62,9 @@ read TIMEZONE
 TIMEZONE=${TIMEZONE:-Asia/Kolkata}
 [[ ! -f "/usr/share/zoneinfo/$TIMEZONE" ]] && err "/usr/share/zoneinfo/$TIMEZONE does not exist. Exiting."
 
-prompt "Hostname [localhost]: "
+prompt "Hostname [archlinux]: "
 read HOSTNAME
-HOSTNAME=${HOSTNAME:-localhost}
+HOSTNAME=${HOSTNAME:-archlinux}
 
 prompt "Password [root]: "
 read -s PASSWORD
@@ -88,9 +94,9 @@ read PROCEED
 
 # Unmount for safety
 umount "$BOOT_EFI" 2> /dev/null || true
-umount "$ROOT" 2> /dev/null || true
 if [ "$HOME_REQUIRED" = "Yes" ];then
 umount "$HOME" 2> /dev/null || true ;fi
+umount "$ROOT" 2> /dev/null || true
 
 # Timezone
 timedatectl set-ntp true
@@ -113,7 +119,7 @@ sed -i "s/#ParallelDownloads = 5/ParallelDownloads = 4/" /etc/pacman.conf
 sed -i "s/#Color/Color/" /etc/pacman.conf
 
 # Initialize base system, kernel, and firmware
-pacstrap /mnt base linux-lts linux-firmware
+pacstrap -K /mnt base linux-lts linux-firmware
 
 # Setup fstab
 genfstab -U /mnt >> /mnt/etc/fstab
@@ -139,14 +145,14 @@ genfstab -U /mnt >> /mnt/etc/fstab
 	# Install microcode
 	echo "pacman -Sy --noconfirm amd-ucode intel-ucode"
 
-	# Install GRUBv2 as a removable drive (universal across hw)
-	echo "pacman -Sy --noconfirm grub efibootmgr os-prober"
+	# Install GRUBv2
+	echo "pacman -Sy --noconfirm grub efibootmgr dosfstools mtools os-prober"
 	echo "sed -i \"s/#GRUB_DISABLE_OS_PROBER=false/GRUB_DISABLE_OS_PROBER=false/\" /etc/default/grub"
 
 	# EFI steps
 	echo "mkdir /boot/efi"
 	echo "mount \"$BOOT_EFI\" /boot/efi"
-	echo "grub-install --target=x86_64-efi --efi-directory=/boot/efi --recheck"
+	echo "grub-install --target=x86_64-efi --efi-directory=/boot/efi  --recheck"
 	
 	# Install GRUB config
 	echo "grub-mkconfig -o /boot/grub/grub.cfg"
@@ -158,6 +164,9 @@ genfstab -U /mnt >> /mnt/etc/fstab
 	# Launch bluetoothd on boot
 	echo "pacman -Sy --noconfirm bluez"
 	echo "systemctl enable bluetooth"
+
+	# Install Basic SystemUtils
+	echo "pacman -Sy --noconfirm nano curl wget git tar"
 
 	# Enable SSH server out of the box
 	if [[ "$SSH" == "yes" ]]
