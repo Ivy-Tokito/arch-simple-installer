@@ -146,7 +146,7 @@ genfstab -U /mnt >> /mnt/etc/fstab
 	echo "pacman -Sy --noconfirm amd-ucode intel-ucode"
 
 	# Install GRUBv2
-	echo "pacman -Sy --noconfirm grub efibootmgr dosfstools mtools os-prober"
+	echo "pacman -Sy --noconfirm grub efibootmgr os-prober"
 	echo "sed -i \"s/#GRUB_DISABLE_OS_PROBER=false/GRUB_DISABLE_OS_PROBER=false/\" /etc/default/grub"
 
 	# EFI steps
@@ -166,7 +166,7 @@ genfstab -U /mnt >> /mnt/etc/fstab
 	echo "systemctl enable bluetooth"
 
 	# Install Basic SystemUtils
-	echo "pacman -Sy --noconfirm nano curl wget git tar"
+	echo "pacman -Sy --noconfirm nano vi curl wget git tar"
 
 	# Enable SSH server out of the box
 	if [[ "$SSH" == "yes" ]]
