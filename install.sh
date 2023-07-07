@@ -19,12 +19,6 @@ prompt() {
 if ! ping -c1 archlinux.org ;then
 err "Connect to Internet & try again!" ;fi
 
-echo "
-# It's Recommended to Update Mirrors using :
-reflector --save /etc/pacman.d/mirrorlist --country $COUNTRY --latest 10 --sort rate
-
-"
-
 # Configuration
 lsblk -o NAME,TYPE,SIZE,FSTYPE,MOUNTPOINTS
 
@@ -49,8 +43,8 @@ if [ "$HOME_REQUIRED" = "y" ];then
   [[ "$FORMAT_HOME" = "y" ]] && FORMAT_HOME=Yes
 
   prompt "Home [/dev/sda#]: "
-  read HOME
-  [[ ! -b "$HOME" ]] && err "Partition does not exist. Exiting." ;fi
+  read HOMEO
+  [[ ! -b "$HOMEO" ]] && err "Partition does not exist. Exiting." ;fi
 
 prompt "Filesystem [ext4]: "
 read FILESYSTEM
@@ -61,6 +55,10 @@ prompt "Timezone [Asia/Kolkata]: "
 read TIMEZONE
 TIMEZONE=${TIMEZONE:-Asia/Kolkata}
 [[ ! -f "/usr/share/zoneinfo/$TIMEZONE" ]] && err "/usr/share/zoneinfo/$TIMEZONE does not exist. Exiting."
+
+prompt "Mirror Country [India]: "
+read COUNTRY
+COUNTRY=${COUNTRY:-India}
 
 prompt "Hostname [archlinux]: "
 read HOSTNAME
@@ -81,9 +79,10 @@ printf "%-16s\t%-16s\n" "CONFIGURATION" "VALUE"
 printf "%-16s\t%-16s\n" "Root & Home Filesystem:" "$FILESYSTEM"
 printf "%-16s\t%-16s\n" "Boot Partition [EFI]:" "$BOOT_EFI"
 printf "%-16s\t%-16s\n" "Root Partition:" "$ROOT"
-printf "%-16s\t%-16s\n" "Home Partition:" "$HOME"
+printf "%-16s\t%-16s\n" "Home Partition:" "$HOMEO"
 printf "%-16s\t%-16s\n" "Format Home Partition:" "$FORMAT_HOME"
 printf "%-16s\t%-16s\n" "Timezone:" "$TIMEZONE"
+printf "%-16s\t%-16s\n" "Mirror Country:" "$COUNTRY"
 printf "%-16s\t%-16s\n" "Hostname:" "$HOSTNAME"
 printf "%-16s\t%-16s\n" "Password:" "`echo \"$PASSWORD\" | sed 's/./*/g'`"
 printf "%-16s\t%-16s\n" "SSH:" "$SSH"
@@ -95,7 +94,7 @@ read PROCEED
 # Unmount for safety
 umount "$BOOT_EFI" 2> /dev/null || true
 if [ "$HOME_REQUIRED" = "Yes" ];then
-umount "$HOME" 2> /dev/null || true ;fi
+umount "$HOMEO" 2> /dev/null || true ;fi
 umount "$ROOT" 2> /dev/null || true
 
 # Timezone
@@ -105,14 +104,20 @@ timedatectl set-ntp true
 mkfs.fat -F 32 "$BOOT_EFI"
 yes | mkfs.$FILESYSTEM "$ROOT"
 if [ "$FORMAT_HOME" = "Yes" ];then
-  mkfs.$FILESYSTEM "$HOME" ;fi
+yes | mkfs.$FILESYSTEM "$HOMEO" ;fi
 
 # Mount our new partition
 mount "$ROOT" /mnt
 sleep 3
 if [ "$HOME_REQUIRED" = "y" ];then
   mkdir /mnt/home
-  mount $HOME /mnt/home ;fi
+  mount $HOMEO /mnt/home ;fi
+
+# Update Mirrors
+echo "Backup Current Mirrorlist"
+cp -v /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.bak
+echo "Updating Mirrors"
+reflector --save /etc/pacman.d/mirrorlist --country "$COUNTRY" --sort rate --latest 10 --verbose
 
 # Enable Parallel downloading
 sed -i "s/#ParallelDownloads = 5/ParallelDownloads = 4/" /etc/pacman.conf
