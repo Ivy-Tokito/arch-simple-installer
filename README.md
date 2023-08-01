@@ -24,5 +24,5 @@ https://youtu.be/MxbsB1W98Rw
 # Usage
 1. Boot Arch Linux live image
 2. Connect to the internet
-3. `curl -L https://git.io/JU4Mk > installer`
+3. `curl -L https://reduced.to/bvvie > installer`
 4. `bash installer`
