@@ -169,6 +169,7 @@ genfstab -U /mnt >> /mnt/etc/fstab
 	# Launch bluetoothd on boot
 	echo "pacman -Sy --noconfirm bluez"
 	echo "systemctl enable bluetooth"
+        echo "echo "rfkill block bluetooth" > /etc/rc.local" #Turn Bluetooth Off at StartUp
 
 	# Install Basic SystemUtils
 	echo "pacman -Sy --noconfirm nano vi curl wget git tar"
