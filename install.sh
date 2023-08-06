@@ -101,7 +101,7 @@ umount "$ROOT" 2> /dev/null || true
 timedatectl set-ntp true
 
 # Formatting partitions
-mkfs.fat -F 32 "$BOOT_EFI"
+#mkfs.fat -F 32 "$BOOT_EFI"
 yes | mkfs.$FILESYSTEM "$ROOT"
 if [ "$FORMAT_HOME" = "Yes" ];then
 yes | mkfs.$FILESYSTEM "$HOMEO" ;fi
