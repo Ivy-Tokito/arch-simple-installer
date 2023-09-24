@@ -3,6 +3,7 @@
 
 # Exit on any error
 set -e
+clear
 
 err() {
 	echo -e " \e[91m*\e[39m $@"
@@ -14,7 +15,6 @@ prompt() {
 }
 
 # Configuration
-clear
 lsblk -o NAME,TYPE,SIZE,FSTYPE,MOUNTPOINTS
 
 prompt "Boot [/dev/sda#]: "
@@ -129,20 +129,21 @@ genfstab -U /mnt >> /mnt/etc/fstab
 	echo "pacman -Sy --noconfirm amd-ucode intel-ucode"
 
 	# Install GRUBv2 as a removable drive (universal across hw)
-	echo "pacman -Sy --noconfirm grub efibootmgr"
+	echo "pacman -Sy --noconfirm grub efibootmgr os-prober"
+	echo "sed -i \"s/#GRUB_DISABLE_OS_PROBER=false/GRUB_DISABLE_OS_PROBER=false/\" /etc/default/grub "
 
 	# EFI steps
 	echo "mkdir /boot/efi"
 	echo "mount \"$BOOT_EFI\" /boot/efi"
 	echo "grub-install --target=x86_64-efi --efi-directory=/boot/efi --removable --recheck"
-	
+
 	# Install GRUB config
 	echo "grub-mkconfig -o /boot/grub/grub.cfg"
 
 	# Install and enable NetworkManager on boot
 	echo "pacman -Sy --noconfirm networkmanager iwd"
 	echo "systemctl enable NetworkManager"
-	
+
 	# Launch bluetoothd on boot
 	#echo "systemctl enable bluetooth"
 
