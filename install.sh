@@ -19,7 +19,6 @@ if ! ping -c1 archlinux.org ;then
 err "Connect to Internet & try again!";fi
 
 # Configuration
-clear
 lsblk -o NAME,TYPE,SIZE,FSTYPE,MOUNTPOINTS
 
 prompt "Boot [/dev/sda#]: "
@@ -55,6 +54,10 @@ read TIMEZONE
 TIMEZONE=${TIMEZONE:-Asia/Kolkata}
 [[ ! -f "/usr/share/zoneinfo/$TIMEZONE" ]] && err "/usr/share/zoneinfo/$TIMEZONE does not exist. Exiting."
 
+prompt "Mirror Country [India]: "
+read COUNTRY
+COUNTRY=${COUNTRY:-India}
+
 prompt "Hostname [archlinux]: "
 read HOSTNAME
 HOSTNAME=${HOSTNAME:-archlinux}
@@ -76,6 +79,7 @@ printf "%-16s\t%-16s\n" "Root Partition:" "$ROOT"
 printf "%-16s\t%-16s\n" "Home Partition:" "$HOMEO"
 printf "%-16s\t%-16s\n" "Format Home Partition:" "$FORMAT_HOME"
 printf "%-16s\t%-16s\n" "Timezone:" "$TIMEZONE"
+printf "%-16s\t%-16s\n" "Mirror Country:" "$COUNTRY"
 printf "%-16s\t%-16s\n" "Hostname:" "$HOSTNAME"
 printf "%-16s\t%-16s\n" "Password:" "$(echo "$PASSWORD" | sed 's/./*/g')"
 printf "%-16s\t%-16s\n" "SSH:" "$SSH"
@@ -97,14 +101,24 @@ timedatectl set-ntp true
 #mkfs.fat -F 32 "$BOOT_EFI"
 yes | mkfs."$FILESYSTEM" "$ROOT"
 if [ "$FORMAT_HOME" = "Yes" ];then
-	yes | mkfs."$FILESYSTEM" "$HOME" ;fi
+yes | mkfs.$FILESYSTEM "$HOMEO";fi
 
 # Mount our new partition
 mount "$ROOT" /mnt
 sleep 3 # Delay to avoid race condition
 if [ "$HOME_REQUIRED" = "y" ];then
 	mkdir /mnt/home
-	mount "$HOME" /mnt/home ;fi
+  mount $HOMEO /mnt/home;fi
+
+# Update Mirrors
+echo "Backup Current Mirrorlist"
+cp -v /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.bak
+echo "Updating Mirrors"
+reflector --save /etc/pacman.d/mirrorlist --country "$COUNTRY" --sort rate --latest 10 --verbose
+
+# Enable Parallel downloading
+sed -i "s/#ParallelDownloads = 5/ParallelDownloads = 4/" /etc/pacman.conf
+sed -i "s/#Color/Color/" /etc/pacman.conf
 
 # Initialize base system, kernel, and firmware
 pacstrap -K /mnt base linux-lts linux-firmware
