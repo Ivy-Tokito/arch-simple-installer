@@ -29,20 +29,18 @@ prompt "Root [/dev/sda#]: "
 read ROOT
 [[ ! -b "$ROOT" ]] && err "Partition does not exist. Exiting."
 
-##Home Partition setup
+# Home Partition setup
 prompt "Seprate Home Partition [y/N]: "
-read HOME_REQUIRED
-[[ "$HOME_REQUIRED" != "y" ]] &&  HOME_REQUIRED=NO && HOME=NO FORMAT_HOME=N/A
+if [[ "$HOME_REQUIRED" = "y" ]];then
 
-if [ "$HOME_REQUIRED" = "y" ];then
 	prompt "Format Home Partition [y/N]: "
 	read FORMAT_HOME
-	[[ "$FORMAT_HOME" != "y" ]] && FORMAT_HOME=NO
-	[[ "$FORMAT_HOME" = "y" ]] && FORMAT_HOME=Yes
+	[[ "$FORMAT_HOME" = "y" ]] && FORMAT_HOME=Yes || FORMAT_HOME=No
 
 	prompt "Home [/dev/sda#]: "
 	read HOMEO
-	[[ ! -b "$HOMEO" ]] && err "Partition does not exist. Exiting.";fi
+	[[ ! -b "$HOMEO" ]] && err "Partition does not exist. Exiting."
+fi
 
 prompt "Filesystem [ext4]: "
 read FILESYSTEM
@@ -104,8 +102,7 @@ if [ "$FORMAT_HOME" = "Yes" ];then
 yes | mkfs.$FILESYSTEM "$HOMEO";fi
 
 # Mount our new partition
-mount "$ROOT" /mnt
-sleep 3 # Delay to avoid race condition
+mount "$ROOT" /mnt && sleep 3 # Delay to avoid race condition
 if [ "$HOME_REQUIRED" = "y" ];then
 	mkdir /mnt/home
   mount $HOMEO /mnt/home;fi
@@ -113,6 +110,7 @@ if [ "$HOME_REQUIRED" = "y" ];then
 # Update Mirrors
 echo "Backup Current Mirrorlist"
 cp -v /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.bak
+
 echo "Updating Mirrors"
 reflector --save /etc/pacman.d/mirrorlist --country "$COUNTRY" --sort rate --latest 10 --verbose
 
@@ -121,7 +119,7 @@ sed -i "s/#ParallelDownloads = 5/ParallelDownloads = 4/" /etc/pacman.conf
 sed -i "s/#Color/Color/" /etc/pacman.conf
 
 # Initialize base system, kernel, and firmware
-pacstrap -K /mnt base linux-lts linux-firmware
+pacstrap -K /mnt base linux linux-firmware
 
 # Setup fstab
 genfstab -U /mnt >> /mnt/etc/fstab
@@ -166,10 +164,9 @@ genfstab -U /mnt >> /mnt/etc/fstab
 	# Launch bluetoothd on boot
 	echo "pacman -Sy --noconfirm --needed bluez"
 	echo "systemctl enable bluetooth"
-	echo "echo "rfkill block bluetooth" > /etc/rc.local" #Turn Bluetooth Off at StartUp
 
 	# Install Basic BasicUtils
-	echo "pacman -Sy --noconfirm --needed nano curl wget git tar"
+	echo "pacman -Sy --noconfirm --needed nano curl wget git tar zip unzip ntfs-3g"
 
 	# Enable SSH server out of the box
 	if [[ "$SSH" == "yes" ]]
