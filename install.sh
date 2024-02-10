@@ -96,16 +96,21 @@ if [ "$HOME_REQUIRED" = "Yes" ];then
 timedatectl set-ntp true
 
 # Formatting partitions
-#mkfs.fat -F 32 "$BOOT_EFI"
+if [[ $(blkid "$BOOT_EFI" | grep -o 'TYPE="[^"]*"' | awk -F '"' '{print $2}') != "vfat" ]];then
+	err "Unsupported Boot Partition: $BOOT_EFI. Exiting";fi
+
+echo "Formating Root Partition: $ROOT"
 yes | mkfs."$FILESYSTEM" "$ROOT"
+
 if [ "$FORMAT_HOME" = "Yes" ];then
-yes | mkfs.$FILESYSTEM "$HOMEO";fi
+	echo "Formating Home Partition: $HOMEO"
+	yes | mkfs."$FILESYSTEM" "$HOMEO";fi
 
 # Mount our new partition
-mount "$ROOT" /mnt && sleep 3 # Delay to avoid race condition
+mount --mkdir "$BOOT_EFI" /mnt/boot && sleep 3 # Delay to avoid race condition
+mount "$ROOT" /mnt && sleep 3
 if [ "$HOME_REQUIRED" = "y" ];then
-	mkdir /mnt/home
-  mount $HOMEO /mnt/home;fi
+  mount --mkdir "$HOMEO" /mnt/home;fi
 
 # Update Mirrors
 echo "Backup Current Mirrorlist"
@@ -145,28 +150,18 @@ genfstab -U /mnt >> /mnt/etc/fstab
 	# Install microcode
 	echo "pacman -Sy --noconfirm --needed amd-ucode intel-ucode"
 
-	# Install GRUBv2 as a removable drive (universal across hw)
-	echo "pacman -Sy --noconfirm --needed grub efibootmgr os-prober"
-	echo "sed -i \"s/#GRUB_DISABLE_OS_PROBER=false/GRUB_DISABLE_OS_PROBER=false/\" /etc/default/grub "
-
-	# EFI steps
-	echo "mkdir /boot/efi"
-	echo "mount \"$BOOT_EFI\" /boot/efi && sleep 3" # Delay to avoid race condition
-	echo "grub-install --target=x86_64-efi --efi-directory=/boot/efi --recheck"
-
-	# Install GRUB config
+	# Install GRUBv2
+	echo "pacman -Sy --noconfirm --needed grub efibootmgr"
+	echo "grub-install --target=x86_64-efi --efi-directory=/boot --recheck"
 	echo "grub-mkconfig -o /boot/grub/grub.cfg"
 
 	# Install and enable NetworkManager on boot
 	echo "pacman -Sy --noconfirm --needed networkmanager"
 	echo "systemctl enable NetworkManager"
 
-	# Launch bluetoothd on boot
+	# Launch Bluetoothd on boot
 	echo "pacman -Sy --noconfirm --needed bluez"
 	echo "systemctl enable bluetooth"
-
-	# Install Basic BasicUtils
-	echo "pacman -Sy --noconfirm --needed nano curl wget git tar zip unzip ntfs-3g"
 
 	# Enable SSH server out of the box
 	if [[ "$SSH" == "yes" ]]
@@ -177,4 +172,4 @@ genfstab -U /mnt >> /mnt/etc/fstab
 	fi
 ) | arch-chroot /mnt
 
-echo "Install completed."
+echo "Basic ArchLinux Install completed."
