@@ -97,6 +97,13 @@ Password [root]: #root user password #Default: root
 ```shell
 timedatectl list-timezones > zones
 ```
+## os-prober
+* To Detect other os in disk **(Dual-Boot)** Install os-prober
+```shell
+wget -o osprober https://bit.ly/3OD8wnP
+bash osprober
+```
+
 ## Usefull Links
 * [Reflector](https://wiki.archlinux.org/title/Reflector)
 * [ArchLinux Mirrors](https://archlinux.org/mirrorlist)

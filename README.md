@@ -20,6 +20,7 @@
 # Usage
 1. Boot Arch Linux live image
 2. Connect to the internet
+3. check [Usage](./USAGE.md) for more Details
 
 ```shell
 wget -O installer bit.ly/3ODSLx4
