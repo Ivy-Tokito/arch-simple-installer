@@ -72,9 +72,9 @@ ping -c1 archlinux.org
 ## Installation
 #### Download the script & Run it
 
-```shell
-wget -O installer bit.ly/3ODSLx4
-bash installer
+```console
+$ wget -O installer bit.ly/3ODSLx4
+$ bash installer
 ```
 
 **Configs**
@@ -99,9 +99,9 @@ timedatectl list-timezones > zones
 ```
 ## os-prober
 * To Detect other os in disk **(Dual-Boot)** Install os-prober
-```shell
-wget -o osprober https://bit.ly/3OD8wnP
-bash osprober
+```console
+$ wget -o osprober https://bit.ly/3OD8wnP
+$ bash osprober
 ```
 
 ## Usefull Links
