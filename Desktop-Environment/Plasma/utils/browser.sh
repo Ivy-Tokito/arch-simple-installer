@@ -47,7 +47,7 @@ case $BROWSER in
    pacman-key --add - <<< "${key}"
    pacman-key --lsign-key "${fingerprint}"
    pacman -Sy --noconfirm --needed waterfox-g-kde
-	 echo "waterfox-g-kde Install Completed!"
+	 echo "waterfox-kde Install Completed!"
 	;;
 
  firefox)

@@ -64,7 +64,7 @@ echo "## Allow $USERNAME to execute any root command
 
 # Pacman Configuration
 sed -i "s/#ParallelDownloads = 5/ParallelDownloads = 4/" "/etc/pacman.conf"
-sed -i "s/#Color/Color/" "/etc/pacman.conf"
+sed -i "/Color/"'s/^#//' "/etc/pacman.conf"
 
 #Install KDE Plasma Desktop Environment
 pacman -Sy --noconfirm --needed plasma-meta

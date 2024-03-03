@@ -15,8 +15,10 @@ prompt() {
 }
 
 # Check internet Connection
-if ! ping -c1 archlinux.org ;then
-err "Connect to Internet & try again!";fi
+if ! ping -c1 archlinux.org
+then
+	err "Connect to Internet & try again!"
+fi
 
 # Configuration
 lsblk -o NAME,TYPE,SIZE,FSTYPE,MOUNTPOINTS
@@ -31,8 +33,8 @@ read ROOT
 
 # Home Partition setup
 prompt "Seprate Home Partition [y/N]: "
-if [[ "$HOME_REQUIRED" = "y" ]];then
-
+if [[ "$HOME_REQUIRED" = "y" ]]
+then
 	prompt "Format Home Partition [y/N]: "
 	read FORMAT_HOME
 	[[ "$FORMAT_HOME" = "y" ]] && FORMAT_HOME=Yes || FORMAT_HOME=No
@@ -87,32 +89,52 @@ read PROCEED
 [[ "$PROCEED" != "y" ]] && err "User chose not to proceed. Exiting."
 
 # Unmount for safety
-umount "$BOOT_EFI" 2> /dev/null || true
 umount "$ROOT" 2> /dev/null || true
-if [ "$HOME_REQUIRED" = "Yes" ];then
-	umount "$HOMEO" 2> /dev/null || true ;fi
+if [ "$HOME_REQUIRED" = "Yes" ]
+then
+	umount "$HOMEO" 2> /dev/null || true
+fi
+umount "$BOOT_EFI" 2> /dev/null || true
 
 # Timezone
 timedatectl set-ntp true
 
 # Formatting partitions
-if [[ $(blkid "$BOOT_EFI" | grep -o 'TYPE="[^"]*"' | awk -F '"' '{print $2}') != "vfat" ]];then
-	err "Unsupported Boot Partition: $BOOT_EFI. Exiting";fi
+#mkfs.fat -F 32 "$BOOT_EFI"
+if [[ $(blkid "$BOOT_EFI" | grep -o 'TYPE="[^"]*"' | awk -F '"' '{print $2}') != "vfat" ]]
+then
+	err "Unsupported Boot Partition: $BOOT_EFI. Exiting"
+fi
 
 echo "Formating Root Partition: $ROOT"
 yes | mkfs."$FILESYSTEM" "$ROOT"
 
-if [ "$FORMAT_HOME" = "Yes" ];then
+if [ "$FORMAT_HOME" = "Yes" ]
+then
 	echo "Formating Home Partition: $HOMEO"
-	yes | mkfs."$FILESYSTEM" "$HOMEO";fi
+	yes | mkfs."$FILESYSTEM" "$HOMEO"
+fi
 
-# Mount our new partition
-mount --mkdir "$BOOT_EFI" /mnt/boot && sleep 3 # Delay to avoid race condition
-mount "$ROOT" /mnt && sleep 3
-if [ "$HOME_REQUIRED" = "y" ];then
-  mount --mkdir "$HOMEO" /mnt/home;fi
+# Mount our new partition #Delay to avoid race condition
+echo "Mounting Root: $ROOT..."
+mount "$ROOT" /mnt
+sleep 3
+
+if [ "$HOME_REQUIRED" = "y" ]
+then
+	echo "Mounting Home: $HOMEO..."
+  mount "$HOMEO" /mnt/home
+	sleep 3
+fi
+
+echo "Mounting Boot: $BOOT_EFI..."
+mount --mkdir "$BOOT_EFI" /mnt/boot
+sleep 3
+
+
 
 # Update Mirrors
+pacman -Syy #Force Update Current Package Repo
 echo "Backup Current Mirrorlist"
 cp -v /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.bak
 
@@ -121,7 +143,7 @@ reflector --save /etc/pacman.d/mirrorlist --country "$COUNTRY" --sort rate --lat
 
 # Enable Parallel downloading
 sed -i "s/#ParallelDownloads = 5/ParallelDownloads = 4/" /etc/pacman.conf
-sed -i "s/#Color/Color/" /etc/pacman.conf
+sed -i "/Color/"'s/^#//' /etc/pacman.conf
 
 # Initialize base system, kernel, and firmware
 pacstrap -K /mnt base linux linux-firmware
@@ -136,7 +158,7 @@ genfstab -U /mnt >> /mnt/etc/fstab
 	echo "hwclock --systohc"
 
 	# Setup locales
-	echo "sed -i \"s/#en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/\" /etc/locale.gen"
+	echo "sed -i \"/en_US.UTF-8/\"'s/^#//' /etc/locale.gen"
 	echo "locale-gen"
 	echo "echo \"LANG=en_US.UTF-8\" > /etc/locale.conf"
 
@@ -152,7 +174,7 @@ genfstab -U /mnt >> /mnt/etc/fstab
 
 	# Install GRUBv2
 	echo "pacman -Sy --noconfirm --needed grub efibootmgr"
-	echo "grub-install --target=x86_64-efi --efi-directory=/boot --recheck"
+	echo "grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=\"ArchLinux\" --recheck"
 	echo "grub-mkconfig -o /boot/grub/grub.cfg"
 
 	# Install and enable NetworkManager on boot

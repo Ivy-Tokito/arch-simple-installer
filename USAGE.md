@@ -17,7 +17,7 @@
       * Boot patition: Set it's Size to 1G, Type to `EFI System`
       * Root Partition: Set Size Accordingly,Type to `Linux`
       * (optional) Home Partition: Set it's Size Accordingly,Type to `Linux`
-* Format your Boot Partition (Not included in install Script)
+* Format your Boot Partition or Uncomment [this](https://github.com/Yukimitsu-Tokito/arch-simple-installer/blob/master/install.sh#L103) line
 
 ```shell
 mkfs.fat -F 32 /dev/efi_system_partition
@@ -94,8 +94,9 @@ Password [root]: #root user password #Default: root
 ```
 
 * For entire list of Timezones
-```shell
-timedatectl list-timezones > zones
+```console
+$ timedatectl list-timezones > zones
+$ nano zones #To check the list
 ```
 ## os-prober
 * To Detect other os in disk **(Dual-Boot)** Install os-prober
@@ -103,10 +104,6 @@ timedatectl list-timezones > zones
 $ wget -o osprober https://bit.ly/3OD8wnP
 $ bash osprober
 ```
-
-## Usefull Links
-* [Reflector](https://wiki.archlinux.org/title/Reflector)
-* [ArchLinux Mirrors](https://archlinux.org/mirrorlist)
 
 ## Example
 ```shell
@@ -134,3 +131,7 @@ Hostname:               archlinux
 Password:               ****            
 SSH:                    no  
 ```
+
+## Usefull Links
+* [Reflector](https://wiki.archlinux.org/title/Reflector)
+* [ArchLinux Mirrors](https://archlinux.org/mirrorlist)
